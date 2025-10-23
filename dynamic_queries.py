@@ -954,6 +954,35 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                 original_owner = roster_map.get(roster_id_from, f"Team {roster_id_from}")
                 pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
                 
+                # Check if draft has occurred and resolve to actual player
+                try:
+                    # Get draft for this season
+                    draft_result = supabase.table('drafts').select('draft_id').eq('league_id', league_id).eq('season', pick_year).execute()
+                    
+                    if draft_result.data:
+                        draft_id = draft_result.data[0]['draft_id']
+                        
+                        # Find which player was drafted with this pick
+                        draft_pick_result = supabase.table('draft_picks').select(
+                            'player_id, players(full_name, position, team)'
+                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                        
+                        if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                            player_data = draft_pick_result.data[0]['players']
+                            player_name = player_data.get('full_name', 'Unknown Player')
+                            player_pos = player_data.get('position', '')
+                            player_team = player_data.get('team', '')
+                            
+                            # Update pick string to include drafted player
+                            drafted_str = f"{player_name}"
+                            if player_pos and player_team:
+                                drafted_str += f" ({player_pos}, {player_team})"
+                            
+                            pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
+                except Exception as e:
+                    logger.warning(f"Could not resolve draft pick to player: {e}")
+                    # Keep original pick_str if resolution fails
+                
                 # Add to receiver
                 if owner_id in teams_data:
                     teams_data[owner_id]['received'].append(pick_str)
@@ -1131,6 +1160,35 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                     
                     original_owner = roster_map.get(roster_id_from, f"Team {roster_id_from}")
                     pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
+                    
+                    # Check if draft has occurred and resolve to actual player
+                    try:
+                        # Get draft for this season
+                        draft_result = supabase.table('drafts').select('draft_id').eq('league_id', league_id).eq('season', pick_year).execute()
+                        
+                        if draft_result.data:
+                            draft_id = draft_result.data[0]['draft_id']
+                            
+                            # Find which player was drafted with this pick
+                            draft_pick_result = supabase.table('draft_picks').select(
+                                'player_id, players(full_name, position, team)'
+                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                            
+                            if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                                player_data = draft_pick_result.data[0]['players']
+                                player_name = player_data.get('full_name', 'Unknown Player')
+                                player_pos = player_data.get('position', '')
+                                player_team = player_data.get('team', '')
+                                
+                                # Update pick string to include drafted player
+                                drafted_str = f"{player_name}"
+                                if player_pos and player_team:
+                                    drafted_str += f" ({player_pos}, {player_team})"
+                                
+                                pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
+                    except Exception as e:
+                        logger.warning(f"Could not resolve draft pick to player: {e}")
+                        # Keep original pick_str if resolution fails
                     
                     if owner_id in teams_data:
                         teams_data[owner_id]['received'].append(pick_str)
