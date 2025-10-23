@@ -205,79 +205,94 @@ html {
   background-color: var(--charcoal-darkest);
 }
 
-/* Mobile: Convert tables to labeled card layout */
+/* Mobile: Keep table format but optimize for smaller screens */
 @media (max-width: 640px) {
+  /* Wrapper to allow horizontal scrolling */
   .markdown-content table {
-    border: none;
-    font-size: 13px;
-  }
-
-  /* Keep headers but style them differently */
-  .markdown-content thead {
-    display: none;
-  }
-
-  .markdown-content tbody,
-  .markdown-content tr {
     display: block;
-  }
-
-  /* Each row is a card */
-  .markdown-content tbody tr {
-    margin-bottom: 1em;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: var(--charcoal-dark);
-    padding: 0.75em;
+    font-size: 12px;
   }
 
-  .markdown-content tr:nth-child(even) {
-    background-color: var(--charcoal-dark);
+  /* Table stays as table */
+  .markdown-content thead,
+  .markdown-content tbody,
+  .markdown-content tr {
+    display: table;
+    display: table-row-group;
+    display: table-row;
   }
 
-  /* Table cells with labels */
+  .markdown-content thead {
+    display: table-header-group;
+  }
+
+  .markdown-content tbody {
+    display: table-row-group;
+  }
+
+  .markdown-content tr {
+    display: table-row;
+  }
+
+  .markdown-content th,
   .markdown-content td {
-    display: flex;
-    flex-direction: column;
-    border: none;
-    padding: 0.6em 0;
-    background-color: transparent !important;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    line-height: 1.4;
+    display: table-cell;
+    white-space: nowrap;
   }
 
-  /* Add column header as label before each cell */
-  .markdown-content td:before {
-    content: attr(data-label);
-    font-size: 11px;
+  /* Adjust padding for mobile */
+  .markdown-content th,
+  .markdown-content td {
+    padding: 0.5em 0.6em;
+    font-size: 12px;
+  }
+
+  /* Header styling */
+  .markdown-content th {
+    background-color: var(--charcoal-base);
     font-weight: 700;
-    color: var(--accent-green);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.3em;
-    display: block;
-  }
-
-  /* Separator between cells */
-  .markdown-content td:not(:last-child) {
-    border-bottom: 1px solid rgba(74, 74, 74, 0.5);
-    margin-bottom: 0.3em;
-  }
-
-  /* Hide empty cells */
-  .markdown-content td:empty {
-    display: none;
-  }
-
-  /* Main content of cell */
-  .markdown-content td {
     color: var(--text-primary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  /* First column sticky for easy reference */
+  .markdown-content th:first-child,
+  .markdown-content td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: var(--charcoal-base);
+  }
+
+  .markdown-content th:first-child {
+    z-index: 3;
+  }
+
+  /* Alternating row colors */
+  .markdown-content td {
+    background-color: var(--charcoal-dark);
+  }
+
+  .markdown-content tr:nth-child(even) td {
+    background-color: var(--charcoal-darkest);
+  }
+
+  /* First column has darker background */
+  .markdown-content tr:nth-child(even) td:first-child {
+    background-color: var(--charcoal-base);
+  }
+
+  .markdown-content tr:nth-child(odd) td:first-child {
+    background-color: var(--charcoal-base);
   }
 }
-
-/* JavaScript will add data-label attributes dynamically */
-/* This CSS provides the mobile-optimized display */
 
 .markdown-content img {
   max-width: 100%;
