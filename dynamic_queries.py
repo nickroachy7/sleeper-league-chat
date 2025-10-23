@@ -548,6 +548,64 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                         original_owner = teams_info.get(roster_id_from, f"Team {roster_id_from}")
                         pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
                         
+                        # Check if draft has occurred and resolve to actual player
+                        try:
+                            # Get draft for this season
+                            draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
+                            
+                            logger.info(f"Draft resolution attempt: season={pick_year}, round={pick_round}, roster_id_from={roster_id_from}, owner_id={owner_id}")
+                            
+                            if draft_result.data and draft_result.data[0].get('status') == 'complete':
+                                draft_id = draft_result.data[0]['draft_id']
+                                logger.info(f"Draft {draft_id} is complete for season {pick_year}")
+                                
+                                # Use traded_picks to confirm who ended up with this exact pick
+                                # Match by: season + round + original roster_id → should give us owner_id
+                                traded_pick = supabase.table('traded_picks').select('owner_id').eq(
+                                    'league_id', league_id
+                                ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                                
+                                logger.info(f"Traded picks query result: {traded_pick.data}")
+                                
+                                # Determine who actually used the pick
+                                actual_drafter = None
+                                if traded_pick.data and len(traded_pick.data) > 0:
+                                    actual_drafter = traded_pick.data[0]['owner_id']
+                                    logger.info(f"Found in traded_picks: actual_drafter={actual_drafter}")
+                                else:
+                                    # Pick wasn't traded or no record, use the receiver from transaction
+                                    actual_drafter = owner_id
+                                    logger.info(f"Not found in traded_picks, using owner_id: actual_drafter={actual_drafter}")
+                                
+                                # Find what was drafted with this pick by the actual drafter
+                                draft_pick_result = supabase.table('draft_picks').select(
+                                    'player_id, pick_no, round, roster_id, players(full_name, position, team)'
+                                ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
+                                
+                                logger.info(f"Draft picks query result: {len(draft_pick_result.data) if draft_pick_result.data else 0} results")
+                                
+                                if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                                    player_data = draft_pick_result.data[0]['players']
+                                    player_name = player_data.get('full_name', 'Unknown Player')
+                                    player_pos = player_data.get('position', '')
+                                    player_team = player_data.get('team', '')
+                                    
+                                    logger.info(f"Resolved to player: {player_name} ({player_pos}, {player_team})")
+                                    
+                                    # Update pick string to include drafted player
+                                    drafted_str = f"{player_name}"
+                                    if player_pos and player_team:
+                                        drafted_str += f" ({player_pos}, {player_team})"
+                                    
+                                    pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
+                                else:
+                                    logger.warning(f"No draft pick data found for roster {actual_drafter}, round {pick_round}")
+                            else:
+                                logger.info(f"Draft for season {pick_year} not complete or not found")
+                        except Exception as e:
+                            logger.warning(f"Could not resolve draft pick to player: {e}", exc_info=True)
+                            # Keep original pick_str if resolution fails
+                        
                         # Add to receiver
                         if owner_id in teams_data:
                             teams_data[owner_id]['received'].append(pick_str)
