@@ -1,8 +1,8 @@
-# Production dependencies only
-requests==2.31.0
-supabase==2.3.4
-openai==1.12.0
-flask==3.0.0
-flask-cors==4.0.0
-python-dotenv==1.0.0
+# Production dependencies only - pinned to versions with binary wheels
+requests>=2.31.0
+supabase>=2.0.0
+openai>=1.0.0
+flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
 
