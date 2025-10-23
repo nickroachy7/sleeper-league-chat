@@ -405,6 +405,128 @@ def get_team_game_stats(team_abbreviation: str, week: int = None) -> Dict[str, A
         return {'error': str(e)}
 
 
+def get_top_performers(position: str = None, stat_category: str = "passing_yards", limit: int = 10, season: int = None) -> Dict[str, Any]:
+    """
+    Get top performing NFL players by stat category for current season.
+    Use this to answer questions like:
+    - "Who are the top 10 performing QBs?"
+    - "Show me the best running backs this season"
+    - "Top 5 receivers by yards"
+    
+    Args:
+        position: Position filter (e.g., "QB", "RB", "WR", "TE"). Leave empty for all positions.
+        stat_category: Stat to rank by - options:
+            - "passing_yards", "passing_touchdowns" (QBs)
+            - "rushing_yards", "rushing_touchdowns" (RBs)
+            - "receiving_yards", "receiving_touchdowns", "receptions" (WR/TE)
+        limit: Number of players to return (default 10)
+        season: Season year (defaults to current season)
+        
+    Returns:
+        List of top performers with their stats
+    """
+    try:
+        if season is None:
+            season = get_current_nfl_season()
+        
+        logger.info(f"Getting top {limit} performers by {stat_category}, position: {position or 'all'}, season: {season}")
+        
+        # Get all active players with optional position filter
+        params = {"per_page": 100}
+        if position:
+            params["position"] = position.upper()
+        
+        players_result = call_mcp_tool("nfl_get_players", params)
+        
+        if 'error' in players_result:
+            return players_result
+        
+        if not players_result.get('content'):
+            return {'error': 'No players found'}
+        
+        players_data = json.loads(players_result['content'][0]['text'])
+        
+        if not players_data.get('data'):
+            return {'error': 'No players found'}
+        
+        # Get season stats for these players
+        player_ids = [p['id'] for p in players_data['data'][:50]]  # Limit to first 50 to avoid too many requests
+        
+        stats_result = call_mcp_tool("nfl_get_season_stats", {
+            "player_ids": player_ids,
+            "season": season,
+            "per_page": 100
+        })
+        
+        if 'error' in stats_result:
+            return stats_result
+        
+        if not stats_result.get('content'):
+            return {'error': 'No stats found'}
+        
+        stats_data = json.loads(stats_result['content'][0]['text'])
+        
+        if not stats_data.get('data'):
+            return {'error': 'No season stats available'}
+        
+        # Map stat_category to actual field names
+        stat_field_map = {
+            'passing_yards': 'passing_yards',
+            'passing_touchdowns': 'passing_touchdowns',
+            'passing_tds': 'passing_touchdowns',
+            'rushing_yards': 'rushing_yards',
+            'rushing_touchdowns': 'rushing_touchdowns',
+            'rushing_tds': 'rushing_touchdowns',
+            'receiving_yards': 'receiving_yards',
+            'receiving_touchdowns': 'receiving_touchdowns',
+            'receiving_tds': 'receiving_touchdowns',
+            'receptions': 'receptions'
+        }
+        
+        field_name = stat_field_map.get(stat_category.lower(), stat_category)
+        
+        # Sort by the requested stat
+        sorted_players = sorted(
+            stats_data['data'],
+            key=lambda x: x.get(field_name, 0) or 0,
+            reverse=True
+        )[:limit]
+        
+        # Format the results
+        results = []
+        for rank, player_stat in enumerate(sorted_players, 1):
+            player_info = player_stat.get('player', {})
+            results.append({
+                'rank': rank,
+                'player_name': f"{player_info.get('first_name', '')} {player_info.get('last_name', '')}".strip(),
+                'position': player_info.get('position_abbreviation', ''),
+                'team': player_stat.get('team', {}).get('abbreviation', ''),
+                'games_played': player_stat.get('games_played', 0),
+                'stat_value': player_stat.get(field_name, 0) or 0,
+                'stat_category': stat_category,
+                'additional_stats': {
+                    'passing_yards': player_stat.get('passing_yards', 0) or 0,
+                    'passing_tds': player_stat.get('passing_touchdowns', 0) or 0,
+                    'rushing_yards': player_stat.get('rushing_yards', 0) or 0,
+                    'rushing_tds': player_stat.get('rushing_touchdowns', 0) or 0,
+                    'receiving_yards': player_stat.get('receiving_yards', 0) or 0,
+                    'receiving_tds': player_stat.get('receiving_touchdowns', 0) or 0,
+                    'receptions': player_stat.get('receptions', 0) or 0
+                }
+            })
+        
+        return {
+            'season': season,
+            'position': position or 'All',
+            'stat_category': stat_category,
+            'top_performers': results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting top performers: {e}", exc_info=True)
+        return {'error': str(e)}
+
+
 def compare_players(player_name_1: str, player_name_2: str, stat_type: str = "season") -> Dict[str, Any]:
     """
     Compare statistics between two NFL players.
@@ -558,6 +680,42 @@ EXTERNAL_FUNCTION_DEFINITIONS = [
             },
             "required": ["player_name_1", "player_name_2"]
         }
+    },
+    {
+        "name": "get_top_performers",
+        "description": """Get top performing NFL players by stat category for current season.
+        
+        USE THIS when user asks questions like:
+        - "Who are the top 10 performing QBs?"
+        - "Show me the best running backs this season"
+        - "Top 5 receivers by yards"
+        - "Who are the leading passers?"
+        - "Best fantasy RBs this year"
+        
+        Returns ranked list of players with their statistics.
+        """,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "position": {
+                    "type": "string",
+                    "description": "Position filter: 'QB', 'RB', 'WR', 'TE'. Leave empty for all positions."
+                },
+                "stat_category": {
+                    "type": "string",
+                    "description": "Stat to rank by: 'passing_yards', 'passing_touchdowns', 'rushing_yards', 'rushing_touchdowns', 'receiving_yards', 'receiving_touchdowns', 'receptions'. Default: 'passing_yards'"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of players to return (default 10, max 25)"
+                },
+                "season": {
+                    "type": "integer",
+                    "description": "Optional: Season year. Automatically detects current season if not provided."
+                }
+            },
+            "required": []
+        }
     }
 ]
 
@@ -566,7 +724,8 @@ EXTERNAL_FUNCTION_MAP = {
     "get_player_game_stats": get_player_game_stats,
     "get_player_season_stats": get_player_season_stats,
     "get_team_game_stats": get_team_game_stats,
-    "compare_players": compare_players
+    "compare_players": compare_players,
+    "get_top_performers": get_top_performers
 }
 
 
