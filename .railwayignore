@@ -1,0 +1,35 @@
+# Logs
+*.log
+app.log
+api_server.log
+web_ui.log
+
+# Node modules (if deploying backend)
+web-ui/node_modules/
+web-ui/.next/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (use Railway's environment variables instead)
+.env
+.env.local
+
