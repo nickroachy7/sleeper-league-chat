@@ -957,15 +957,16 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                 # Check if draft has occurred and resolve to actual player
                 try:
                     # Get draft for this season
-                    draft_result = supabase.table('drafts').select('draft_id').eq('league_id', league_id).eq('season', pick_year).execute()
+                    draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
                     
-                    if draft_result.data:
+                    if draft_result.data and draft_result.data[0].get('status') == 'complete':
                         draft_id = draft_result.data[0]['draft_id']
                         
-                        # Find which player was drafted with this pick
+                        # The pick was used by owner_id (who received it in trade), not roster_id_from
+                        # Query by the current owner and round to find what was drafted
                         draft_pick_result = supabase.table('draft_picks').select(
-                            'player_id, players(full_name, position, team)'
-                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                            'player_id, pick_no, round, roster_id, players(full_name, position, team)'
+                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', owner_id).execute()
                         
                         if draft_pick_result.data and draft_pick_result.data[0].get('players'):
                             player_data = draft_pick_result.data[0]['players']
@@ -1164,15 +1165,16 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                     # Check if draft has occurred and resolve to actual player
                     try:
                         # Get draft for this season
-                        draft_result = supabase.table('drafts').select('draft_id').eq('league_id', league_id).eq('season', pick_year).execute()
+                        draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
                         
-                        if draft_result.data:
+                        if draft_result.data and draft_result.data[0].get('status') == 'complete':
                             draft_id = draft_result.data[0]['draft_id']
                             
-                            # Find which player was drafted with this pick
+                            # The pick was used by owner_id (who received it in trade), not roster_id_from
+                            # Query by the current owner and round to find what was drafted
                             draft_pick_result = supabase.table('draft_picks').select(
-                                'player_id, players(full_name, position, team)'
-                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                                'player_id, pick_no, round, roster_id, players(full_name, position, team)'
+                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', owner_id).execute()
                             
                             if draft_pick_result.data and draft_pick_result.data[0].get('players'):
                                 player_data = draft_pick_result.data[0]['players']
