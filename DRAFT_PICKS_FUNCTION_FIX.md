@@ -178,3 +178,5 @@ curl -X POST http://localhost:5001/api/chat \
 The fantasy assistant now has complete, accurate access to all draft data across all 3 seasons and will use the real database instead of making up information. The `get_team_draft_picks()` function is fully integrated and ready to use! 🎉
 
 
+
+
