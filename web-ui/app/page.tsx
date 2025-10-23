@@ -1,0 +1,229 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
+import { Trophy, RotateCcw, Send, Bot, TrendingUp, Calendar, Users, ArrowRightLeft } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const sessionId = useRef(`session-${Date.now()}`)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || loading) return
+
+    const userMessage = input.trim()
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setLoading(true)
+
+    try {
+      const response = await fetch('http://localhost:5001/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          session_id: sessionId.current
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.response) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'Sorry, I encountered an error. Please try again.' 
+        }])
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+          content: 'Sorry, I could not connect to the server. Make sure the API server is running on port 5001.' 
+      }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetChat = () => {
+    setMessages([])
+    sessionId.current = `session-${Date.now()}`
+  }
+
+  return (
+    <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--charcoal-darkest)' }}>
+      {/* Header */}
+      <header className="px-6 py-4" style={{ backgroundColor: 'var(--charcoal-dark)', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <Image 
+              src="/yapsports-logo.webp" 
+              alt="YapSports Logo" 
+              width={140} 
+              height={140}
+              className="rounded"
+            />
+          </div>
+          <button
+            onClick={resetChat}
+            className="px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 hover:opacity-80"
+            style={{ backgroundColor: 'var(--charcoal-light)', color: 'var(--text-primary)' }}
+          >
+            <RotateCcw className="w-4 h-4" />
+            New Chat
+          </button>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {messages.length === 0 && (
+            <div className="text-center py-12">
+              <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                Welcome to Your Fantasy League Assistant!
+              </h2>
+              <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>
+                I can help you with standings, rosters, matchups, transactions, and more.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                {[
+                  { text: 'What are the current standings?', icon: TrendingUp },
+                  { text: 'Show me week 5 results', icon: Calendar },
+                  { text: 'Who owns Travis Kelce?', icon: Users },
+                  { text: 'Show me recent trades', icon: ArrowRightLeft }
+                ].map((example, i) => {
+                  const IconComponent = example.icon
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setInput(example.text)}
+                      className="p-4 rounded-lg text-left text-sm transition-all hover:opacity-80 flex items-center gap-3"
+                      style={{ 
+                        backgroundColor: 'var(--charcoal-base)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-green)' }} />
+                      <span>{example.text}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {messages.map((message, i) => (
+            <div
+              key={i}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {message.role === 'user' ? (
+                // User message - with bubble
+                <div 
+                  className="max-w-[75%] rounded-2xl px-5 py-3"
+                  style={{ backgroundColor: 'var(--accent-green)', color: 'white' }}
+                >
+                  <div className="whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                  </div>
+                </div>
+              ) : (
+                // Assistant message - no bubble, just content with icon
+                <div className="max-w-[85%] flex items-start gap-3">
+                  <div 
+                    className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1"
+                    style={{ backgroundColor: 'var(--charcoal-base)', border: '1px solid var(--border-color)' }}
+                  >
+                    <Bot className="w-5 h-5" style={{ color: 'var(--accent-green)' }} />
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <div className="markdown-content leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start">
+              <div className="flex items-start gap-3">
+                <div 
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1"
+                  style={{ backgroundColor: 'var(--charcoal-base)', border: '1px solid var(--border-color)' }}
+                >
+                  <Bot className="w-5 h-5" style={{ color: 'var(--accent-green)' }} />
+                </div>
+                <div className="flex gap-1 pt-2">
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input */}
+      <div className="px-6 py-4" style={{ backgroundColor: 'var(--charcoal-dark)', borderTop: '1px solid var(--border-color)' }}>
+        <form onSubmit={sendMessage} className="max-w-4xl mx-auto">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about your fantasy league..."
+              className="flex-1 px-5 py-3 rounded-xl focus:outline-none transition-all"
+              style={{ 
+                backgroundColor: 'var(--charcoal-base)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="w-12 h-12 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center flex-shrink-0"
+              style={{ 
+                backgroundColor: 'var(--accent-green)',
+                color: 'white'
+              }}
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
