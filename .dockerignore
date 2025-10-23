@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+
+# Logs
+*.log
+app.log
+api_server.log
+web_ui.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Web UI (not needed for backend)
+web-ui/
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional - remove if you want docs in container)
+*.md
+!README.md
+
+# Test files
+tests/
+
