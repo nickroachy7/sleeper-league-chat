@@ -205,28 +205,28 @@ html {
   background-color: var(--charcoal-darkest);
 }
 
-/* Mobile: Convert tables to compact list layout */
+/* Mobile: Convert tables to labeled card layout */
 @media (max-width: 640px) {
   .markdown-content table {
     border: none;
     font-size: 13px;
   }
 
+  /* Keep headers but style them differently */
   .markdown-content thead {
     display: none;
   }
 
   .markdown-content tbody,
-  .markdown-content tr,
-  .markdown-content td {
+  .markdown-content tr {
     display: block;
   }
 
-  /* Each row is a compact card */
+  /* Each row is a card */
   .markdown-content tbody tr {
-    margin-bottom: 0.75em;
+    margin-bottom: 1em;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: var(--charcoal-dark);
     padding: 0.75em;
   }
@@ -235,25 +235,34 @@ html {
     background-color: var(--charcoal-dark);
   }
 
-  /* Each cell takes full width */
+  /* Table cells with labels */
   .markdown-content td {
+    display: flex;
+    flex-direction: column;
     border: none;
-    padding: 0.4em 0;
+    padding: 0.6em 0;
     background-color: transparent !important;
-    text-align: left;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    line-height: 1.5;
+    line-height: 1.4;
   }
 
-  /* First cell in row - typically the most important */
-  .markdown-content tbody tr td:first-child {
-    font-size: 14px;
+  /* Add column header as label before each cell */
+  .markdown-content td:before {
+    content: attr(data-label);
+    font-size: 11px;
     font-weight: 700;
     color: var(--accent-green);
-    padding-bottom: 0.5em;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 0.5em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.3em;
+    display: block;
+  }
+
+  /* Separator between cells */
+  .markdown-content td:not(:last-child) {
+    border-bottom: 1px solid rgba(74, 74, 74, 0.5);
+    margin-bottom: 0.3em;
   }
 
   /* Hide empty cells */
@@ -261,26 +270,14 @@ html {
     display: none;
   }
 
-  /* Add subtle separators between cells (except first and last) */
-  .markdown-content tbody tr td:not(:first-child):not(:last-child):not(:empty) {
-    padding-bottom: 0.4em;
-  }
-
-  /* Last cell no extra padding */
-  .markdown-content tbody tr td:last-child {
-    padding-bottom: 0;
-  }
-
-  /* Style longer text content */
+  /* Main content of cell */
   .markdown-content td {
     color: var(--text-primary);
   }
-
-  /* If there are multiple items in a cell, add spacing */
-  .markdown-content td br {
-    margin: 0.3em 0;
-  }
 }
+
+/* JavaScript will add data-label attributes dynamically */
+/* This CSS provides the mobile-optimized display */
 
 .markdown-content img {
   max-width: 100%;

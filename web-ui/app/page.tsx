@@ -24,6 +24,26 @@ export default function Home() {
 
   useEffect(() => {
     scrollToBottom()
+    
+    // Add data-label attributes to table cells for mobile viewing
+    const tables = document.querySelectorAll('.markdown-content table')
+    tables.forEach(table => {
+      const headers: string[] = []
+      const headerCells = table.querySelectorAll('thead th')
+      headerCells.forEach(th => {
+        headers.push(th.textContent || '')
+      })
+      
+      const rows = table.querySelectorAll('tbody tr')
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td')
+        cells.forEach((cell, index) => {
+          if (headers[index]) {
+            cell.setAttribute('data-label', headers[index])
+          }
+        })
+      })
+    })
   }, [messages])
 
   const sendMessage = async (e: React.FormEvent) => {
