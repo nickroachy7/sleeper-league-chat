@@ -172,76 +172,63 @@ html {
   margin: 1.5em 0;
 }
 
+/* Mobile-optimized table wrapper */
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
+  margin: 1em 0;
+  font-size: 14px;
+}
+
+/* Wrapper for horizontal scrolling on mobile */
+.markdown-content > table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   max-width: 100%;
-  margin: 1.5em 0;
-  border-radius: 8px;
   border: 1px solid var(--border-color);
-  table-layout: auto;
-  display: table;
-}
-
-/* Ensure tables can scroll horizontally if needed on small screens */
-@media (max-width: 768px) {
-  .markdown-content table {
-    display: block;
-    overflow-x: auto;
-  }
-}
-
-.markdown-content thead {
-  background-color: var(--charcoal-base);
+  border-radius: 8px;
 }
 
 .markdown-content th,
 .markdown-content td {
-  padding: 0.75em 1em;
+  border: 1px solid var(--border-color);
+  padding: 0.6em 0.8em;
   text-align: left;
-  border-bottom: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
-  vertical-align: top;
-  word-wrap: break-word;
-  white-space: normal;
-  min-width: 120px;
-  max-width: none;
-}
-
-/* Allow first column (labels) to be narrower */
-.markdown-content td:first-child,
-.markdown-content th:first-child {
+  white-space: nowrap;
   min-width: 80px;
-  font-weight: 600;
-}
-
-.markdown-content th:last-child,
-.markdown-content td:last-child {
-  border-right: none;
-}
-
-.markdown-content tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .markdown-content th {
+  background-color: var(--charcoal-base);
   font-weight: 700;
-  color: var(--accent-green);
-  text-transform: uppercase;
-  font-size: 0.85em;
-  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .markdown-content td {
   color: var(--text-primary);
+  background-color: var(--charcoal-dark);
 }
 
-.markdown-content tbody tr {
-  transition: background-color 0.2s;
+/* Alternate row colors for better readability */
+.markdown-content tr:nth-child(even) td {
+  background-color: var(--charcoal-darkest);
 }
 
-.markdown-content tbody tr:hover {
-  background-color: rgba(51, 156, 94, 0.05);
+/* Mobile improvements */
+@media (max-width: 640px) {
+  .markdown-content table {
+    font-size: 12px;
+  }
+  
+  .markdown-content th,
+  .markdown-content td {
+    padding: 0.5em 0.6em;
+    min-width: 60px;
+  }
 }
 
 .markdown-content img {
