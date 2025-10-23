@@ -405,6 +405,176 @@ def get_team_game_stats(team_abbreviation: str, week: int = None) -> Dict[str, A
         return {'error': str(e)}
 
 
+def call_mcp_endpoint(endpoint_name: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Generic function to call ANY Ball Don't Lie MCP endpoint directly.
+    
+    This gives you access to ALL NFL data endpoints without needing specific wrapper functions.
+    
+    Available endpoints include:
+    
+    NFL TEAMS:
+    - nfl_get_teams: Get all NFL teams (filter by conference, division)
+    - nfl_get_team_by_id: Get specific team details
+    
+    NFL PLAYERS:
+    - nfl_get_players: Search players (by name, position, team)
+    - nfl_get_player_by_id: Get specific player details
+    - nfl_get_active_players: Get only active players
+    
+    NFL GAMES:
+    - nfl_get_games: Get games (filter by date, season, week, team)
+    - nfl_get_game_by_id: Get specific game details
+    
+    NFL STATS:
+    - nfl_get_stats: Get player game stats (filter by player, game, date, season, week)
+    - nfl_get_season_stats: Get player season totals
+    - nfl_get_advanced_rushing_stats: Advanced rushing analytics
+    - nfl_get_advanced_passing_stats: Advanced passing analytics
+    - nfl_get_advanced_receiving_stats: Advanced receiving analytics
+    
+    NFL STANDINGS:
+    - nfl_get_standings: Get team standings (filter by season, conference, division)
+    
+    NFL LEADERS & INJURIES:
+    - nfl_get_leaders: Get statistical leaders (by season, stat_type like 'pts', 'reb', etc.)
+    - nfl_get_player_injuries: Get injury reports (filter by player, team)
+    
+    Args:
+        endpoint_name: Name of the MCP endpoint to call (e.g., 'nfl_get_standings')
+        parameters: Dictionary of parameters to pass to the endpoint
+        
+    Returns:
+        Raw response from the MCP endpoint
+        
+    Examples:
+        # Get standings
+        call_mcp_endpoint("nfl_get_standings", {"season": 2025})
+        
+        # Search for a player
+        call_mcp_endpoint("nfl_get_players", {"search": "Mahomes", "per_page": 5})
+        
+        # Get injury reports
+        call_mcp_endpoint("nfl_get_player_injuries", {})
+    """
+    try:
+        if parameters is None:
+            parameters = {}
+        
+        logger.info(f"Calling MCP endpoint: {endpoint_name} with params: {parameters}")
+        
+        result = call_mcp_tool(endpoint_name, parameters)
+        
+        if 'error' in result:
+            return result
+        
+        if not result.get('content'):
+            return {'error': 'No data returned from endpoint'}
+        
+        # Parse and return the data
+        data = json.loads(result['content'][0]['text'])
+        return data
+        
+    except Exception as e:
+        logger.error(f"Error calling MCP endpoint {endpoint_name}: {e}", exc_info=True)
+        return {'error': str(e)}
+
+
+def get_nfl_standings(season: int = None, conference: str = None, division: str = None) -> Dict[str, Any]:
+    """
+    Get current NFL team standings.
+    Use this to answer questions like:
+    - "What are the NFL standings?"
+    - "Show me the AFC East standings"
+    - "Who is leading the NFC?"
+    
+    Args:
+        season: Season year (defaults to current season)
+        conference: Filter by conference - "AFC" or "NFC"
+        division: Filter by division - "NORTH", "SOUTH", "EAST", "WEST"
+        
+    Returns:
+        NFL team standings with wins, losses, and rankings
+    """
+    try:
+        if season is None:
+            season = get_current_nfl_season()
+        
+        logger.info(f"Getting NFL standings for season {season}, conference: {conference or 'all'}, division: {division or 'all'}")
+        
+        params = {"season": season}
+        if conference:
+            params["conference"] = conference.upper()
+        if division:
+            params["division"] = division.upper()
+        
+        standings_result = call_mcp_tool("nfl_get_standings", params)
+        
+        if 'error' in standings_result:
+            return standings_result
+        
+        if not standings_result.get('content'):
+            return {'error': 'No standings data found'}
+        
+        standings_data = json.loads(standings_result['content'][0]['text'])
+        
+        if not standings_data.get('data'):
+            return {'error': 'No standings available'}
+        
+        # Format the standings data
+        teams = standings_data['data']
+        
+        # Group by conference and division
+        standings = {
+            'AFC': {'EAST': [], 'NORTH': [], 'SOUTH': [], 'WEST': []},
+            'NFC': {'EAST': [], 'NORTH': [], 'SOUTH': [], 'WEST': []}
+        }
+        
+        for team_data in teams:
+            team_info = team_data.get('team', {})
+            conf = team_info.get('conference')
+            div = team_info.get('division')
+            
+            if conf and div:
+                # Calculate win percentage
+                wins = team_data.get('wins', 0)
+                losses = team_data.get('losses', 0)
+                ties = team_data.get('ties', 0)
+                total_games = wins + losses + ties
+                win_pct = wins / total_games if total_games > 0 else 0
+                
+                standings[conf][div].append({
+                    'team': team_info.get('full_name'),
+                    'abbreviation': team_info.get('abbreviation'),
+                    'wins': wins,
+                    'losses': losses,
+                    'ties': ties,
+                    'win_percentage': win_pct,
+                    'overall_record': team_data.get('overall_record', ''),
+                    'conference_record': team_data.get('conference_record', ''),
+                    'division_record': team_data.get('division_record', ''),
+                    'points_for': team_data.get('points_for', 0),
+                    'points_against': team_data.get('points_against', 0),
+                    'point_differential': team_data.get('point_differential', 0),
+                    'playoff_seed': team_data.get('playoff_seed', 0),
+                    'win_streak': team_data.get('win_streak', 0)
+                })
+        
+        # Sort each division by win percentage (then by wins if tied)
+        for conf in standings:
+            for div in standings[conf]:
+                standings[conf][div].sort(key=lambda x: (x['win_percentage'], x['wins']), reverse=True)
+        
+        return {
+            'season': season,
+            'standings': standings
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting NFL standings: {e}", exc_info=True)
+        return {'error': str(e)}
+
+
 def get_top_performers(position: str = None, stat_category: str = "passing_yards", limit: int = 10, season: int = None) -> Dict[str, Any]:
     """
     Get top performing NFL players by stat category for current season.
@@ -566,6 +736,60 @@ def compare_players(player_name_1: str, player_name_2: str, stat_type: str = "se
 # Function definitions for OpenAI Assistant
 EXTERNAL_FUNCTION_DEFINITIONS = [
     {
+        "name": "call_mcp_endpoint",
+        "description": """🚀 UNIVERSAL NFL DATA ACCESS - Call ANY Ball Don't Lie MCP endpoint directly.
+        
+        USE THIS for flexible queries and data that doesn't have a specific wrapper function.
+        This gives you access to ALL NFL endpoints including standings, injuries, games, etc.
+        
+        AVAILABLE ENDPOINTS:
+        
+        📊 STANDINGS & TEAMS:
+        • nfl_get_standings - Team standings (params: season, conference, division)
+        • nfl_get_teams - All NFL teams (params: conference, division)
+        • nfl_get_team_by_id - Specific team (params: id)
+        
+        🏈 PLAYERS:
+        • nfl_get_players - Search players (params: search, position, team_ids, per_page)
+        • nfl_get_player_by_id - Specific player (params: id)
+        • nfl_get_active_players - Only active players (params: search, position)
+        
+        📅 GAMES:
+        • nfl_get_games - Get games (params: dates, seasons, weeks, team_ids, postseason)
+        • nfl_get_game_by_id - Specific game (params: id)
+        
+        📈 STATS:
+        • nfl_get_stats - Player game stats (params: player_ids, game_ids, dates, seasons, weeks)
+        • nfl_get_season_stats - Season totals (params: player_ids, season, postseason)
+        • nfl_get_advanced_rushing_stats - Advanced rushing (params: season, week, player_id)
+        • nfl_get_advanced_passing_stats - Advanced passing (params: season, week, player_id)
+        • nfl_get_advanced_receiving_stats - Advanced receiving (params: season, week, player_id)
+        
+        🏆 LEADERS & INJURIES:
+        • nfl_get_leaders - Statistical leaders (params: season, stat_type, cursor, per_page)
+        • nfl_get_player_injuries - Injury reports (params: player_ids, team_ids, cursor, per_page)
+        
+        EXAMPLES:
+        • Standings: call_mcp_endpoint("nfl_get_standings", {"season": 2025})
+        • Injuries: call_mcp_endpoint("nfl_get_player_injuries", {})
+        • Leaders: call_mcp_endpoint("nfl_get_leaders", {"season": 2025, "stat_type": "pts"})
+        """,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "endpoint_name": {
+                    "type": "string",
+                    "description": "Name of the MCP endpoint to call (e.g., 'nfl_get_standings', 'nfl_get_player_injuries')"
+                },
+                "parameters": {
+                    "type": "object",
+                    "description": "Parameters to pass to the endpoint as a JSON object. Examples: {'season': 2025}, {'search': 'Mahomes'}, {'team_ids': [14]}"
+                }
+            },
+            "required": ["endpoint_name"]
+        }
+    },
+    {
         "name": "get_player_game_stats",
         "description": """Get real-time NFL player statistics for a specific game using Ball Don't Lie API.
         
@@ -682,6 +906,38 @@ EXTERNAL_FUNCTION_DEFINITIONS = [
         }
     },
     {
+        "name": "get_nfl_standings",
+        "description": """Get current NFL team standings and rankings.
+        
+        USE THIS when user asks questions like:
+        - "What are the NFL standings?"
+        - "Show me the AFC East standings"
+        - "Who is leading the NFC?"
+        - "What's the current NFL playoff picture?"
+        - "How are the Chiefs doing this season?"
+        
+        Returns complete standings with W-L records, rankings, and stats.
+        """,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "season": {
+                    "type": "integer",
+                    "description": "Optional: Season year. Automatically detects current season if not provided."
+                },
+                "conference": {
+                    "type": "string",
+                    "description": "Optional: Filter by conference - 'AFC' or 'NFC'"
+                },
+                "division": {
+                    "type": "string",
+                    "description": "Optional: Filter by division - 'EAST', 'WEST', 'NORTH', 'SOUTH'"
+                }
+            },
+            "required": []
+        }
+    },
+    {
         "name": "get_top_performers",
         "description": """Get top performing NFL players by stat category for current season.
         
@@ -721,10 +977,12 @@ EXTERNAL_FUNCTION_DEFINITIONS = [
 
 # Map function names to actual functions
 EXTERNAL_FUNCTION_MAP = {
+    "call_mcp_endpoint": call_mcp_endpoint,
     "get_player_game_stats": get_player_game_stats,
     "get_player_season_stats": get_player_season_stats,
     "get_team_game_stats": get_team_game_stats,
     "compare_players": compare_players,
+    "get_nfl_standings": get_nfl_standings,
     "get_top_performers": get_top_performers
 }
 
