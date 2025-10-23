@@ -28,7 +28,7 @@ ENV/
 .env
 .env.local
 .env.*.local
-config.py
+# config.py - Now safe to commit (uses env vars, no secrets)
 
 # IDE
 .vscode/

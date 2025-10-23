@@ -6,18 +6,41 @@ Now with dynamic database querying capabilities!
 
 import json
 from openai import OpenAI
+from datetime import datetime
 from config import OPENAI_API_KEY, SLEEPER_LEAGUE_ID
 from dynamic_queries import FUNCTION_DEFINITIONS, FUNCTION_MAP
+from external_stats import EXTERNAL_FUNCTION_DEFINITIONS, EXTERNAL_FUNCTION_MAP, get_current_nfl_season
 from logger_config import setup_logger
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 logger = setup_logger('fantasy_assistant')
 
-SYSTEM_PROMPT = f"""You are a helpful fantasy football assistant for a fantasy league on Sleeper. 
-You have direct access to the league's Supabase database and can query it dynamically.
+# Get current date and NFL season for context
+CURRENT_DATE = datetime.now().strftime("%B %d, %Y")  # e.g., "October 23, 2025"
+CURRENT_NFL_SEASON = get_current_nfl_season()
 
-IMPORTANT: The league_id for all queries is: {SLEEPER_LEAGUE_ID}
+SYSTEM_PROMPT = f"""You are a helpful fantasy football assistant for a fantasy league on Sleeper. 
+
+📅 CURRENT CONTEXT:
+- Today's Date: {CURRENT_DATE}
+- Current NFL Season: {CURRENT_NFL_SEASON}
+
+You have access to TWO data sources:
+1. **League Database (Supabase)**: Fantasy league data (rosters, standings, trades, matchups)
+2. **Ball Don't Lie API (MCP)**: Real-time NFL player statistics and game data
+
+🎯 CRITICAL: Choose the RIGHT data source:
+- Fantasy league questions (rosters, standings, trades, who owns X) → Use Supabase functions
+- Real NFL stats questions (how many TDs, yards, last game performance) → Use Ball Don't Lie functions
+
+Examples:
+✓ "Who owns AJ Brown?" → Use find_player_by_name() + check rosters (Supabase)
+✓ "How many TDs did AJ Brown have last game?" → Use get_player_game_stats() (Ball Don't Lie)
+✓ "Show standings" → Use query_with_filters() (Supabase)
+✓ "What are Mahomes' season stats?" → Use get_player_season_stats() (Ball Don't Lie)
+
+IMPORTANT: The league_id for all Supabase queries is: {SLEEPER_LEAGUE_ID}
 Always filter by league_id when querying rosters, users, matchups, or transactions tables.
 
 Available tables and their purpose:
@@ -165,10 +188,14 @@ def chat(message: str, conversation_history: list = None) -> tuple[str, list]:
     # Add user message
     conversation_history.append({"role": "user", "content": message})
     
-    # Convert function definitions to tools format
-    tools = [{"type": "function", "function": func} for func in FUNCTION_DEFINITIONS]
+    # Merge Supabase and external API function definitions
+    all_function_definitions = FUNCTION_DEFINITIONS + EXTERNAL_FUNCTION_DEFINITIONS
+    all_function_map = {**FUNCTION_MAP, **EXTERNAL_FUNCTION_MAP}
     
-    logger.debug(f"Using {len(tools)} dynamic query tools for query: {message[:50]}...")
+    # Convert function definitions to tools format
+    tools = [{"type": "function", "function": func} for func in all_function_definitions]
+    
+    logger.debug(f"Using {len(tools)} tools ({len(FUNCTION_DEFINITIONS)} Supabase + {len(EXTERNAL_FUNCTION_DEFINITIONS)} external) for query: {message[:50]}...")
     
     # Get response from OpenAI
     response = client.chat.completions.create(
@@ -193,8 +220,8 @@ def chat(message: str, conversation_history: list = None) -> tuple[str, list]:
             logger.info(f"🔧 Calling function: {function_name}({function_args})")
             print(f"🔧 Calling function: {function_name}({function_args})")
             
-            # Call the actual function
-            function_to_call = FUNCTION_MAP[function_name]
+            # Call the actual function from merged map
+            function_to_call = all_function_map[function_name]
             function_response = function_to_call(**function_args)
             
             # Add function response to conversation
