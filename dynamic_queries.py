@@ -550,19 +550,21 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                         
                         # Check if draft has occurred and resolve to actual player
                         try:
-                            # Get draft for this season
-                            draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
+                            # Get draft for this season (query by season only, not league_id, since pick may be for future season)
+                            draft_result = supabase.table('drafts').select('draft_id, status, league_id').eq('season', pick_year).execute()
                             
                             logger.info(f"Draft resolution attempt: season={pick_year}, round={pick_round}, roster_id_from={roster_id_from}, owner_id={owner_id}")
                             
                             if draft_result.data and draft_result.data[0].get('status') == 'complete':
                                 draft_id = draft_result.data[0]['draft_id']
-                                logger.info(f"Draft {draft_id} is complete for season {pick_year}")
+                                pick_season_league_id = draft_result.data[0]['league_id']
+                                logger.info(f"Draft {draft_id} is complete for season {pick_year}, league {pick_season_league_id}")
                                 
                                 # Use traded_picks to confirm who ended up with this exact pick
                                 # Match by: season + round + original roster_id → should give us owner_id
+                                # Use the league_id from the draft season, not the trade season
                                 traded_pick = supabase.table('traded_picks').select('owner_id').eq(
-                                    'league_id', league_id
+                                    'league_id', pick_season_league_id
                                 ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
                                 
                                 logger.info(f"Traded picks query result: {traded_pick.data}")
@@ -1025,19 +1027,21 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                 
                 # Check if draft has occurred and resolve to actual player
                 try:
-                    # Get draft for this season
-                    draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
+                    # Get draft for this season (query by season only, not league_id, since pick may be for future season)
+                    draft_result = supabase.table('drafts').select('draft_id, status, league_id').eq('season', pick_year).execute()
                     
                     logger.info(f"Draft resolution attempt: season={pick_year}, round={pick_round}, roster_id_from={roster_id_from}, owner_id={owner_id}")
                     
                     if draft_result.data and draft_result.data[0].get('status') == 'complete':
                         draft_id = draft_result.data[0]['draft_id']
-                        logger.info(f"Draft {draft_id} is complete for season {pick_year}")
+                        pick_season_league_id = draft_result.data[0]['league_id']
+                        logger.info(f"Draft {draft_id} is complete for season {pick_year}, league {pick_season_league_id}")
                         
                         # Use traded_picks to confirm who ended up with this exact pick
                         # Match by: season + round + original roster_id → should give us owner_id
+                        # Use the league_id from the draft season, not the trade season
                         traded_pick = supabase.table('traded_picks').select('owner_id').eq(
-                            'league_id', league_id
+                            'league_id', pick_season_league_id
                         ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
                         
                         logger.info(f"Traded picks query result: {traded_pick.data}")
@@ -1272,19 +1276,21 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                     
                     # Check if draft has occurred and resolve to actual player
                     try:
-                        # Get draft for this season
-                        draft_result = supabase.table('drafts').select('draft_id, status').eq('league_id', league_id).eq('season', pick_year).execute()
+                        # Get draft for this season (query by season only, not league_id, since pick may be for future season)
+                        draft_result = supabase.table('drafts').select('draft_id, status, league_id').eq('season', pick_year).execute()
                         
                         logger.info(f"Draft resolution attempt: season={pick_year}, round={pick_round}, roster_id_from={roster_id_from}, owner_id={owner_id}")
                         
                         if draft_result.data and draft_result.data[0].get('status') == 'complete':
                             draft_id = draft_result.data[0]['draft_id']
-                            logger.info(f"Draft {draft_id} is complete for season {pick_year}")
+                            pick_season_league_id = draft_result.data[0]['league_id']
+                            logger.info(f"Draft {draft_id} is complete for season {pick_year}, league {pick_season_league_id}")
                             
                             # Use traded_picks to confirm who ended up with this exact pick
                             # Match by: season + round + original roster_id → should give us owner_id
+                            # Use the league_id from the draft season, not the trade season
                             traded_pick = supabase.table('traded_picks').select('owner_id').eq(
-                                'league_id', league_id
+                                'league_id', pick_season_league_id
                             ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
                             
                             logger.info(f"Traded picks query result: {traded_pick.data}")
