@@ -962,11 +962,24 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                     if draft_result.data and draft_result.data[0].get('status') == 'complete':
                         draft_id = draft_result.data[0]['draft_id']
                         
-                        # The pick was used by owner_id (who received it in trade), not roster_id_from
-                        # Query by the current owner and round to find what was drafted
+                        # Use traded_picks to confirm who ended up with this exact pick
+                        # Match by: season + round + original roster_id → should give us owner_id
+                        traded_pick = supabase.table('traded_picks').select('owner_id').eq(
+                            'league_id', league_id
+                        ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                        
+                        # Determine who actually used the pick
+                        actual_drafter = None
+                        if traded_pick.data and len(traded_pick.data) > 0:
+                            actual_drafter = traded_pick.data[0]['owner_id']
+                        else:
+                            # Pick wasn't traded or no record, use the receiver from transaction
+                            actual_drafter = owner_id
+                        
+                        # Find what was drafted with this pick by the actual drafter
                         draft_pick_result = supabase.table('draft_picks').select(
                             'player_id, pick_no, round, roster_id, players(full_name, position, team)'
-                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', owner_id).execute()
+                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
                         
                         if draft_pick_result.data and draft_pick_result.data[0].get('players'):
                             player_data = draft_pick_result.data[0]['players']
@@ -1170,11 +1183,24 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                         if draft_result.data and draft_result.data[0].get('status') == 'complete':
                             draft_id = draft_result.data[0]['draft_id']
                             
-                            # The pick was used by owner_id (who received it in trade), not roster_id_from
-                            # Query by the current owner and round to find what was drafted
+                            # Use traded_picks to confirm who ended up with this exact pick
+                            # Match by: season + round + original roster_id → should give us owner_id
+                            traded_pick = supabase.table('traded_picks').select('owner_id').eq(
+                                'league_id', league_id
+                            ).eq('season', pick_year).eq('round', pick_round).eq('roster_id', roster_id_from).execute()
+                            
+                            # Determine who actually used the pick
+                            actual_drafter = None
+                            if traded_pick.data and len(traded_pick.data) > 0:
+                                actual_drafter = traded_pick.data[0]['owner_id']
+                            else:
+                                # Pick wasn't traded or no record, use the receiver from transaction
+                                actual_drafter = owner_id
+                            
+                            # Find what was drafted with this pick by the actual drafter
                             draft_pick_result = supabase.table('draft_picks').select(
                                 'player_id, pick_no, round, roster_id, players(full_name, position, team)'
-                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', owner_id).execute()
+                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
                             
                             if draft_pick_result.data and draft_pick_result.data[0].get('players'):
                                 player_data = draft_pick_result.data[0]['players']
