@@ -36,7 +36,8 @@ export default function Home() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/chat', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,7 +60,7 @@ export default function Home() {
       console.error('Error:', error)
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-          content: 'Sorry, I could not connect to the server. Make sure the API server is running on port 5001.' 
+        content: 'Sorry, I could not connect to the server. Please try again later.' 
       }])
     } finally {
       setLoading(false)
