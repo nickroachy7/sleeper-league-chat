@@ -548,10 +548,15 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                         # Get the original owner's team name (may need to query if not in current league)
                         original_owner = teams_info.get(roster_id_from)
                         if not original_owner:
-                            # Roster not in current trade - need to fetch from pick's season league
+                            # Roster not in current trade - need to fetch from most recent available league
                             try:
-                                # First get the league for this pick's season
-                                pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                                # Try to get the league for this pick's season, if not available use latest
+                                pick_league = supabase.table('leagues').select('league_id, season').eq('season', pick_year).execute()
+                                
+                                if not pick_league.data:
+                                    # Season doesn't exist yet (future pick), get most recent league
+                                    pick_league = supabase.table('leagues').select('league_id, season').order('season', desc=True).limit(1).execute()
+                                
                                 if pick_league.data:
                                     pick_league_id = pick_league.data[0]['league_id']
                                     roster_result = supabase.table('rosters').select(
@@ -565,7 +570,8 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                                         original_owner = f'Team {roster_id_from}'
                                 else:
                                     original_owner = f'Team {roster_id_from}'
-                            except:
+                            except Exception as e:
+                                logger.warning(f"Could not resolve team name for roster {roster_id_from}: {e}")
                                 original_owner = f'Team {roster_id_from}'
                         
                         pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
@@ -1054,10 +1060,15 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                 # Get the original owner's team name (may need to query if not in current league)
                 original_owner = roster_map.get(roster_id_from)
                 if not original_owner:
-                    # Roster not in current trade - need to fetch from pick's season league
+                    # Roster not in current trade - need to fetch from most recent available league
                     try:
-                        # First get the league for this pick's season
-                        pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                        # Try to get the league for this pick's season, if not available use latest
+                        pick_league = supabase.table('leagues').select('league_id, season').eq('season', pick_year).execute()
+                        
+                        if not pick_league.data:
+                            # Season doesn't exist yet (future pick), get most recent league
+                            pick_league = supabase.table('leagues').select('league_id, season').order('season', desc=True).limit(1).execute()
+                        
                         if pick_league.data:
                             pick_league_id = pick_league.data[0]['league_id']
                             roster_result = supabase.table('rosters').select(
@@ -1071,7 +1082,8 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                                 original_owner = f'Team {roster_id_from}'
                         else:
                             original_owner = f'Team {roster_id_from}'
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Could not resolve team name for roster {roster_id_from}: {e}")
                         original_owner = f'Team {roster_id_from}'
                 
                 pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
@@ -1333,10 +1345,15 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                     # Get the original owner's team name (may need to query if not in current league)
                     original_owner = roster_map.get(roster_id_from)
                     if not original_owner:
-                        # Roster not in current trade - need to fetch from pick's season league
+                        # Roster not in current trade - need to fetch from most recent available league
                         try:
-                            # First get the league for this pick's season
-                            pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                            # Try to get the league for this pick's season, if not available use latest
+                            pick_league = supabase.table('leagues').select('league_id, season').eq('season', pick_year).execute()
+                            
+                            if not pick_league.data:
+                                # Season doesn't exist yet (future pick), get most recent league
+                                pick_league = supabase.table('leagues').select('league_id, season').order('season', desc=True).limit(1).execute()
+                            
                             if pick_league.data:
                                 pick_league_id = pick_league.data[0]['league_id']
                                 roster_result = supabase.table('rosters').select(
@@ -1350,7 +1367,8 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                                     original_owner = f'Team {roster_id_from}'
                             else:
                                 original_owner = f'Team {roster_id_from}'
-                        except:
+                        except Exception as e:
+                            logger.warning(f"Could not resolve team name for roster {roster_id_from}: {e}")
                             original_owner = f'Team {roster_id_from}'
                     
                     pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"

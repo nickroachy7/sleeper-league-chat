@@ -118,14 +118,12 @@ CRITICAL: All trade functions return data that MUST be formatted as tables.
 
 | | The Jaxon 5 | G.W. |
 |-|-------------|------|
-| **Gave Up** | Cooper Kupp (WR, LAR), Travis Etienne (RB, JAX) | 2024 1st Round Pick (originally G.W.'s), DeAndre Hopkins (WR, TEN) |
 | **Received** | 2024 1st Round Pick (originally G.W.'s), DeAndre Hopkins (WR, TEN) | Cooper Kupp (WR, LAR), Travis Etienne (RB, JAX) |
 
 **Season 2024, Week 1**
 
 | | Javier's Silk Road | G.W. |
 |-|--------------------|------|
-| **Gave Up** | 2025 1st Round Pick | Cooper Kupp (WR, LAR) |
 | **Received** | Cooper Kupp (WR, LAR) | 2025 1st Round Pick |
 
 For multiple trades, each trade gets its own **Season X, Week Y** header and table.
@@ -136,12 +134,12 @@ For get_player_trade_history():
 - Loop through each trade in the trades array
 - For each trade, create the **Season X, Week Y** header
 - Build a table with columns for each team involved
-- Show what each team gave up and received
+- Show only what each team received (do NOT show "Gave Up" - only show "Received")
 
 Use tables for:
 - Standings/rankings
 - Weekly matchups (with opponent pairing and winner)
-- Trades (what each team gave/received)
+- Trades (what each team received)
 - Player comparisons
 - Draft picks
 - Transaction summaries
