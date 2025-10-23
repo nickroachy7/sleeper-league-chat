@@ -577,14 +577,25 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                                     actual_drafter = owner_id
                                     logger.info(f"Not found in traded_picks, using owner_id: actual_drafter={actual_drafter}")
                                 
-                                # Find what was drafted with this pick by the actual drafter
+                                # Calculate expected pick position: roster_id_from indicates original draft slot
+                                # In round 1: pick_no = roster_id
+                                # In round 2+: depends on snake draft (reverse order for even rounds)
+                                num_teams = 12  # Standard league size
+                                if pick_round % 2 == 1:  # Odd rounds: regular order
+                                    expected_pick_no = (pick_round - 1) * num_teams + roster_id_from
+                                else:  # Even rounds: reverse order
+                                    expected_pick_no = pick_round * num_teams - (roster_id_from - 1)
+                                
+                                logger.info(f"Expected pick_no for roster_id {roster_id_from}, round {pick_round}: {expected_pick_no}")
+                                
+                                # Find what was drafted with this specific pick number
                                 draft_pick_result = supabase.table('draft_picks').select(
                                     'player_id, pick_no, round, roster_id, players(full_name, position, team)'
-                                ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
+                                ).eq('draft_id', draft_id).eq('pick_no', expected_pick_no).execute()
                                 
                                 logger.info(f"Draft picks query result: {len(draft_pick_result.data) if draft_pick_result.data else 0} results")
                                 
-                                if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                                if draft_pick_result.data and len(draft_pick_result.data) > 0 and draft_pick_result.data[0].get('players'):
                                     player_data = draft_pick_result.data[0]['players']
                                     player_name = player_data.get('full_name', 'Unknown Player')
                                     player_pos = player_data.get('position', '')
@@ -599,7 +610,7 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                                     
                                     pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
                                 else:
-                                    logger.warning(f"No draft pick data found for roster {actual_drafter}, round {pick_round}")
+                                    logger.warning(f"No draft pick data found for pick_no {expected_pick_no}, round {pick_round}")
                             else:
                                 logger.info(f"Draft for season {pick_year} not complete or not found")
                         except Exception as e:
@@ -1041,14 +1052,25 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                             actual_drafter = owner_id
                             logger.info(f"Not found in traded_picks, using owner_id: actual_drafter={actual_drafter}")
                         
-                        # Find what was drafted with this pick by the actual drafter
+                        # Calculate expected pick position: roster_id_from indicates original draft slot
+                        # In round 1: pick_no = roster_id
+                        # In round 2+: depends on snake draft (reverse order for even rounds)
+                        num_teams = 12  # Standard league size
+                        if pick_round % 2 == 1:  # Odd rounds: regular order
+                            expected_pick_no = (pick_round - 1) * num_teams + roster_id_from
+                        else:  # Even rounds: reverse order
+                            expected_pick_no = pick_round * num_teams - (roster_id_from - 1)
+                        
+                        logger.info(f"Expected pick_no for roster_id {roster_id_from}, round {pick_round}: {expected_pick_no}")
+                        
+                        # Find what was drafted with this specific pick number
                         draft_pick_result = supabase.table('draft_picks').select(
                             'player_id, pick_no, round, roster_id, players(full_name, position, team)'
-                        ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
+                        ).eq('draft_id', draft_id).eq('pick_no', expected_pick_no).execute()
                         
                         logger.info(f"Draft picks query result: {len(draft_pick_result.data) if draft_pick_result.data else 0} results")
                         
-                        if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                        if draft_pick_result.data and len(draft_pick_result.data) > 0 and draft_pick_result.data[0].get('players'):
                             player_data = draft_pick_result.data[0]['players']
                             player_name = player_data.get('full_name', 'Unknown Player')
                             player_pos = player_data.get('position', '')
@@ -1063,7 +1085,7 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                             
                             pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
                         else:
-                            logger.warning(f"No draft pick data found for roster {actual_drafter}, round {pick_round}")
+                            logger.warning(f"No draft pick data found for pick_no {expected_pick_no}, round {pick_round}")
                     else:
                         logger.info(f"Draft for season {pick_year} not complete or not found")
                 except Exception as e:
@@ -1277,14 +1299,25 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                                 actual_drafter = owner_id
                                 logger.info(f"Not found in traded_picks, using owner_id: actual_drafter={actual_drafter}")
                             
-                            # Find what was drafted with this pick by the actual drafter
+                            # Calculate expected pick position: roster_id_from indicates original draft slot
+                            # In round 1: pick_no = roster_id
+                            # In round 2+: depends on snake draft (reverse order for even rounds)
+                            num_teams = 12  # Standard league size
+                            if pick_round % 2 == 1:  # Odd rounds: regular order
+                                expected_pick_no = (pick_round - 1) * num_teams + roster_id_from
+                            else:  # Even rounds: reverse order
+                                expected_pick_no = pick_round * num_teams - (roster_id_from - 1)
+                            
+                            logger.info(f"Expected pick_no for roster_id {roster_id_from}, round {pick_round}: {expected_pick_no}")
+                            
+                            # Find what was drafted with this specific pick number
                             draft_pick_result = supabase.table('draft_picks').select(
                                 'player_id, pick_no, round, roster_id, players(full_name, position, team)'
-                            ).eq('draft_id', draft_id).eq('round', pick_round).eq('roster_id', actual_drafter).execute()
+                            ).eq('draft_id', draft_id).eq('pick_no', expected_pick_no).execute()
                             
                             logger.info(f"Draft picks query result: {len(draft_pick_result.data) if draft_pick_result.data else 0} results")
                             
-                            if draft_pick_result.data and draft_pick_result.data[0].get('players'):
+                            if draft_pick_result.data and len(draft_pick_result.data) > 0 and draft_pick_result.data[0].get('players'):
                                 player_data = draft_pick_result.data[0]['players']
                                 player_name = player_data.get('full_name', 'Unknown Player')
                                 player_pos = player_data.get('position', '')
@@ -1299,7 +1332,7 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                                 
                                 pick_str = f"{pick_year} Round {pick_round} Pick → {drafted_str} (originally {original_owner}'s)"
                             else:
-                                logger.warning(f"No draft pick data found for roster {actual_drafter}, round {pick_round}")
+                                logger.warning(f"No draft pick data found for pick_no {expected_pick_no}, round {pick_round}")
                         else:
                             logger.info(f"Draft for season {pick_year} not complete or not found")
                     except Exception as e:
