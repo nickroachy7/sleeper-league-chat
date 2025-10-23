@@ -545,7 +545,29 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                         pick_year = pick.get('season')
                         pick_round = pick.get('round')
                         
-                        original_owner = teams_info.get(roster_id_from, f"Team {roster_id_from}")
+                        # Get the original owner's team name (may need to query if not in current league)
+                        original_owner = teams_info.get(roster_id_from)
+                        if not original_owner:
+                            # Roster not in current trade - need to fetch from pick's season league
+                            try:
+                                # First get the league for this pick's season
+                                pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                                if pick_league.data:
+                                    pick_league_id = pick_league.data[0]['league_id']
+                                    roster_result = supabase.table('rosters').select(
+                                        'roster_id, users(display_name, team_name)'
+                                    ).eq('league_id', pick_league_id).eq('roster_id', roster_id_from).execute()
+                                    
+                                    if roster_result.data and roster_result.data[0].get('users'):
+                                        user_data = roster_result.data[0]['users']
+                                        original_owner = user_data.get('team_name') or user_data.get('display_name', f'Team {roster_id_from}')
+                                    else:
+                                        original_owner = f'Team {roster_id_from}'
+                                else:
+                                    original_owner = f'Team {roster_id_from}'
+                            except:
+                                original_owner = f'Team {roster_id_from}'
+                        
                         pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
                         
                         # Check if draft has occurred and resolve to actual player
@@ -636,12 +658,19 @@ def get_player_trade_history(player_name_search: str) -> Dict[str, Any]:
                         elif giving_up_teams:
                             teams_data[giving_up_teams[0]]['gave_up'].append(pick_str)
                     
-                    # Build trade details in same format as get_recent_trades
+                    # Build trade details - remove gave_up field to simplify output
+                    teams_summary = []
+                    for team_data in teams_data.values():
+                        teams_summary.append({
+                            'team_name': team_data['team_name'],
+                            'received': team_data['received']
+                        })
+                    
                     trade_info = {
                         'season': season,
                         'week': txn.get('week'),
                         'transaction_id': txn.get('transaction_id'),
-                        'teams': list(teams_data.values())
+                        'teams': teams_summary
                     }
                     
                     all_trades.append(trade_info)
@@ -1022,7 +1051,29 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                 pick_year = pick.get('season')
                 pick_round = pick.get('round')
                 
-                original_owner = roster_map.get(roster_id_from, f"Team {roster_id_from}")
+                # Get the original owner's team name (may need to query if not in current league)
+                original_owner = roster_map.get(roster_id_from)
+                if not original_owner:
+                    # Roster not in current trade - need to fetch from pick's season league
+                    try:
+                        # First get the league for this pick's season
+                        pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                        if pick_league.data:
+                            pick_league_id = pick_league.data[0]['league_id']
+                            roster_result = supabase.table('rosters').select(
+                                'roster_id, users(display_name, team_name)'
+                            ).eq('league_id', pick_league_id).eq('roster_id', roster_id_from).execute()
+                            
+                            if roster_result.data and roster_result.data[0].get('users'):
+                                user_data = roster_result.data[0]['users']
+                                original_owner = user_data.get('team_name') or user_data.get('display_name', f'Team {roster_id_from}')
+                            else:
+                                original_owner = f'Team {roster_id_from}'
+                        else:
+                            original_owner = f'Team {roster_id_from}'
+                    except:
+                        original_owner = f'Team {roster_id_from}'
+                
                 pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
                 
                 # Check if draft has occurred and resolve to actual player
@@ -1115,17 +1166,25 @@ def get_recent_trades(limit: int = 10, season: str = None) -> Dict[str, Any]:
                     teams_data[giving_up_teams[0]]['gave_up'].append(pick_str)
             
             # Format trade data
+            # Build trade details - remove gave_up field to simplify output
+            teams_summary = []
+            for team_data in teams_data.values():
+                teams_summary.append({
+                    'team_name': team_data['team_name'],
+                    'received': team_data['received']
+                })
+            
             trade_entry = {
                 'season': season,
                 'week': txn.get('week'),
                 'transaction_id': txn.get('transaction_id'),
-                'teams': list(teams_data.values())
+                'teams': teams_summary
             }
             
-            # Log warning if any team has nothing
+            # Log warning if any team has nothing received
             for team in trade_entry['teams']:
-                if not team['gave_up'] and not team['received']:
-                    logger.warning(f"Trade {txn.get('transaction_id')} has team {team['team_name']} with no items")
+                if not team['received']:
+                    logger.warning(f"Trade {txn.get('transaction_id')} has team {team['team_name']} with no items received")
             
             formatted_trades.append(trade_entry)
         
@@ -1271,7 +1330,29 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                     pick_year = pick.get('season')
                     pick_round = pick.get('round')
                     
-                    original_owner = roster_map.get(roster_id_from, f"Team {roster_id_from}")
+                    # Get the original owner's team name (may need to query if not in current league)
+                    original_owner = roster_map.get(roster_id_from)
+                    if not original_owner:
+                        # Roster not in current trade - need to fetch from pick's season league
+                        try:
+                            # First get the league for this pick's season
+                            pick_league = supabase.table('leagues').select('league_id').eq('season', pick_year).execute()
+                            if pick_league.data:
+                                pick_league_id = pick_league.data[0]['league_id']
+                                roster_result = supabase.table('rosters').select(
+                                    'roster_id, users(display_name, team_name)'
+                                ).eq('league_id', pick_league_id).eq('roster_id', roster_id_from).execute()
+                                
+                                if roster_result.data and roster_result.data[0].get('users'):
+                                    user_data = roster_result.data[0]['users']
+                                    original_owner = user_data.get('team_name') or user_data.get('display_name', f'Team {roster_id_from}')
+                                else:
+                                    original_owner = f'Team {roster_id_from}'
+                            else:
+                                original_owner = f'Team {roster_id_from}'
+                        except:
+                            original_owner = f'Team {roster_id_from}'
+                    
                     pick_str = f"{pick_year} Round {pick_round} Pick (originally {original_owner}'s)"
                     
                     # Check if draft has occurred and resolve to actual player
@@ -1357,11 +1438,19 @@ def get_team_trade_history(team_name_search: str) -> Dict[str, Any]:
                         teams_data[giving_up_teams[0]]['gave_up'].append(pick_str)
                 
                 # Format trade data
+                # Build trade details - remove gave_up field to simplify output
+                teams_summary = []
+                for team_data in teams_data.values():
+                    teams_summary.append({
+                        'team_name': team_data['team_name'],
+                        'received': team_data['received']
+                    })
+                
                 trade_entry = {
                     'season': season,
                     'week': txn.get('week'),
                     'transaction_id': txn.get('transaction_id'),
-                    'teams': list(teams_data.values())
+                    'teams': teams_summary
                 }
                 
                 all_trades.append(trade_entry)
