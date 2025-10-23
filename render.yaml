@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: sleeper-league-api
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: "pip install --upgrade pip && pip install -r requirements-prod.txt"
+    startCommand: "python api_server.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: FLASK_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SLEEPER_LEAGUE_ID
+        sync: false
+
