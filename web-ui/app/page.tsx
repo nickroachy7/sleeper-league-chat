@@ -28,17 +28,28 @@ export default function Home() {
     // Add data-label attributes to table cells for mobile viewing
     const tables = document.querySelectorAll('.markdown-content table')
     tables.forEach(table => {
-      const headers: string[] = []
       const headerCells = table.querySelectorAll('thead th')
+      const headers: string[] = []
+      
       headerCells.forEach(th => {
-        headers.push(th.textContent || '')
+        headers.push(th.textContent?.trim() || '')
       })
       
       const rows = table.querySelectorAll('tbody tr')
       rows.forEach(row => {
         const cells = row.querySelectorAll('td')
+        const firstCell = cells[0]
+        const rowLabel = firstCell?.textContent?.trim() || ''
+        
         cells.forEach((cell, index) => {
-          if (headers[index]) {
+          if (index === 0) {
+            // First cell is the row label itself
+            cell.setAttribute('data-label', 'Category')
+          } else if (headers[index] && rowLabel) {
+            // Combine column header and row label for context
+            // e.g., "Javier's Silk Road - Gave Up"
+            cell.setAttribute('data-label', `${headers[index]} - ${rowLabel}`)
+          } else if (headers[index]) {
             cell.setAttribute('data-label', headers[index])
           }
         })
