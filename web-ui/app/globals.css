@@ -172,22 +172,15 @@ html {
   margin: 1.5em 0;
 }
 
-/* Mobile-optimized table wrapper */
+/* Desktop table styles */
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
   margin: 1em 0;
   font-size: 14px;
-}
-
-/* Wrapper for horizontal scrolling on mobile */
-.markdown-content > table {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  max-width: 100%;
   border: 1px solid var(--border-color);
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .markdown-content th,
@@ -195,17 +188,12 @@ html {
   border: 1px solid var(--border-color);
   padding: 0.6em 0.8em;
   text-align: left;
-  white-space: nowrap;
-  min-width: 80px;
 }
 
 .markdown-content th {
   background-color: var(--charcoal-base);
   font-weight: 700;
   color: var(--text-primary);
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 .markdown-content td {
@@ -213,21 +201,85 @@ html {
   background-color: var(--charcoal-dark);
 }
 
-/* Alternate row colors for better readability */
 .markdown-content tr:nth-child(even) td {
   background-color: var(--charcoal-darkest);
 }
 
-/* Mobile improvements */
+/* Mobile: Convert tables to card layout */
 @media (max-width: 640px) {
-  .markdown-content table {
-    font-size: 12px;
-  }
-  
+  .markdown-content table,
+  .markdown-content thead,
+  .markdown-content tbody,
   .markdown-content th,
+  .markdown-content td,
+  .markdown-content tr {
+    display: block;
+  }
+
+  /* Hide table headers */
+  .markdown-content thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  /* Make each row a card */
+  .markdown-content tr {
+    margin-bottom: 1em;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--charcoal-dark);
+    padding: 0.5em;
+  }
+
+  .markdown-content tr:nth-child(even) {
+    background-color: var(--charcoal-dark);
+  }
+
   .markdown-content td {
-    padding: 0.5em 0.6em;
-    min-width: 60px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+    padding-left: 40%;
+    padding-top: 0.6em;
+    padding-bottom: 0.6em;
+    background-color: transparent !important;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .markdown-content td:last-child {
+    border-bottom: none;
+  }
+
+  /* Add labels using data attributes */
+  .markdown-content td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0.6em;
+    width: 35%;
+    padding-right: 0.5em;
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--accent-green);
+  }
+
+  /* If data-label isn't set, use nth-child with common headers */
+  .markdown-content tr td:nth-child(1):before {
+    content: "Rank";
+  }
+  .markdown-content tr td:nth-child(2):before {
+    content: "Team";
+  }
+  .markdown-content tr td:nth-child(3):before {
+    content: "Owner";
+  }
+  .markdown-content tr td:nth-child(4):before {
+    content: "Record";
+  }
+  .markdown-content tr td:nth-child(5):before {
+    content: "Points";
   }
 }
 
