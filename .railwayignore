@@ -1,12 +1,11 @@
+# Completely ignore web-ui for backend deployment
+web-ui/
+
 # Logs
 *.log
 app.log
 api_server.log
 web_ui.log
-
-# Node modules (if deploying backend)
-web-ui/node_modules/
-web-ui/.next/
 
 # Python cache
 __pycache__/
@@ -29,7 +28,21 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Environment files (use Railway's environment variables instead)
+# Environment files
 .env
 .env.local
+
+# Tests (not needed in production)
+tests/
+
+# Documentation
+*.md
+!README.md
+
+# SQL files (run these manually)
+*.sql
+
+# Unnecessary for deployment
+start.sh
+yapsports-logo.webp
 

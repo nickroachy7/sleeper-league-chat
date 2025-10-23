@@ -1,0 +1,7 @@
+# Heroku/Railway slug ignore - exclude web-ui entirely
+web-ui/
+tests/
+*.md
+*.sql
+*.log
+
