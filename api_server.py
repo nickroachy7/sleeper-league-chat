@@ -81,7 +81,7 @@ def chat_endpoint():
     except Exception as e:
         logger.error(f"Error processing chat request: {str(e)}", exc_info=True, extra={
             'session_id': session_id,
-            'message': message[:100] if message else None
+            'user_message': message[:100] if message else None
         })
         return jsonify({'error': str(e)}), 500
 
