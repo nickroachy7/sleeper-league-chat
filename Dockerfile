@@ -12,8 +12,8 @@ COPY requirements-prod.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --prefer-binary -r requirements-prod.txt
 
-# Copy only Python files (not web-ui)
-COPY api_server.py fantasy_assistant.py league_queries.py dynamic_queries.py sync_sleeper_data.py config.py logger_config.py external_stats.py ./
+# Copy all Python files (not web-ui)
+COPY *.py ./
 
 # Port that Railway will use
 EXPOSE 8080
