@@ -4,6 +4,9 @@ FROM python:3.10-slim-bullseye
 # Set working directory
 WORKDIR /app
 
+# Force rebuild - updated 2025-10-24
+ARG CACHEBUST=20251024
+
 # Copy requirements
 COPY requirements-prod.txt .
 
