@@ -19,16 +19,17 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
+
+# Virtual environments
 venv/
 env/
 ENV/
+.venv
 
 # Environment variables
 .env
 .env.local
 .env.*.local
-# config.py - Now safe to commit (uses env vars, no secrets)
 
 # IDE
 .vscode/
@@ -40,43 +41,25 @@ ENV/
 
 # Logs
 *.log
+logs/
+app.log
 api_server.log
-web_ui.log
-*.log.*
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
 .tox/
-.nox/
 
 # Next.js
 web-ui/.next/
 web-ui/out/
+web-ui/build/
 web-ui/node_modules/
 web-ui/.env*.local
-web-ui/build/
 
-# Dependencies
-node_modules/
-
-# Debug files
-debug_page_source.html
-ktc_format2.html
-ktc_page_full.html
-
-# Temporary files
+# Misc
+*.bak
 *.tmp
-*.temp
 .cache/
-
-
-
-
-
