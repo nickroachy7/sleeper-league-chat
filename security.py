@@ -67,10 +67,11 @@ def get_allowed_origins() -> List[str]:
     custom_origins = os.getenv("ALLOWED_ORIGINS", "")
     if custom_origins:
         custom_list = [origin.strip() for origin in custom_origins.split(",")]
-        logger.info(f"Using custom CORS origins: {custom_list}")
+        logger.info(f"✅ Using custom CORS origins: {custom_list}")
         return custom_list
 
-    logger.debug(f"Using default CORS origins: {default_origins}")
+    logger.warning(f"⚠️  Using default CORS origins (localhost only): {default_origins}")
+    logger.warning("⚠️  Set ALLOWED_ORIGINS environment variable for production!")
     return default_origins
 
 
