@@ -28,6 +28,11 @@ FLASK_ENV = os.getenv('FLASK_ENV', 'production')
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 LOG_FILE = os.getenv('LOG_FILE', 'app.log')
 
+# Security Configuration (Optional)
+# Set API_KEY environment variable to require authentication on endpoints
+# If not set, API runs in development mode (no auth required)
+API_KEY = os.getenv('API_KEY', None)
+
 # Validation - ensure critical config is set
 required_vars = {
     'SUPABASE_URL': SUPABASE_URL,

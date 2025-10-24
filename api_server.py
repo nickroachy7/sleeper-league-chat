@@ -10,6 +10,7 @@ from logger_config import setup_logger
 from config import API_PORT, FLASK_ENV, LOG_FILE
 from validators import validate_request, validate_chat_request, ValidationError
 from error_handlers import register_error_handlers, InternalServerError
+from middleware import rate_limit, require_api_key, request_logger
 import json
 
 # Setup logging
@@ -55,6 +56,8 @@ def health():
 
 
 @app.route("/api/chat", methods=["POST"])
+@rate_limit(max_requests=30, window_seconds=60, key_prefix="chat")
+@request_logger
 @validate_request(validate_chat_request)
 def chat_endpoint():
     """
@@ -121,6 +124,7 @@ def chat_endpoint():
 
 
 @app.route("/api/reset", methods=["POST"])
+@rate_limit(max_requests=10, window_seconds=60, key_prefix="reset")
 def reset_conversation():
     """
     Reset conversation history for a session
@@ -170,6 +174,7 @@ def reset_conversation():
 
 
 @app.route("/api/league", methods=["GET"])
+@rate_limit(max_requests=60, window_seconds=60, key_prefix="league")
 def get_league():
     """
     Get basic league information
@@ -194,6 +199,7 @@ def get_league():
 
 
 @app.route("/api/standings", methods=["GET"])
+@rate_limit(max_requests=60, window_seconds=60, key_prefix="standings")
 def get_standings_endpoint():
     """
     Get current league standings
