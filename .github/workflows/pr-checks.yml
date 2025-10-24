@@ -1,0 +1,66 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  pr-validation:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages
+        run: |
+          echo "Checking commit messages follow conventional commits..."
+          git log --format=%s ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | \
+          grep -E '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,}$' || \
+          (echo "❌ Commit messages must follow conventional commits format" && exit 1)
+
+      - name: Check for sensitive data
+        run: |
+          echo "Checking for potential secrets or API keys..."
+          if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | \
+             grep -iE '(api[_-]?key|secret|password|token)[[:space:]]*[:=][[:space:]]*["\047][^"\047]{8,}["\047]'; then
+            echo "❌ Potential sensitive data detected in diff"
+            exit 1
+          fi
+          echo "✅ No sensitive data detected"
+
+      - name: Check file size
+        run: |
+          echo "Checking for large files..."
+          git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --stat | \
+          awk '{if ($3 > 500) {print "⚠️  Large file: " $1 " (" $3 " lines)"}}'
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install radon
+
+      - name: Check code complexity
+        run: |
+          echo "Checking cyclomatic complexity..."
+          radon cc . -a -nb || true
+
+      - name: Check maintainability index
+        run: |
+          echo "Checking maintainability index..."
+          radon mi . -nb || true
+

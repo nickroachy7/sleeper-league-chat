@@ -14,3 +14,10 @@ pytest-mock==3.12.0
 black==23.12.1
 ruff==0.1.9
 
+# Security scanning
+bandit==1.7.6
+safety==3.0.1
+
+# Code complexity analysis
+radon==6.0.1
+
