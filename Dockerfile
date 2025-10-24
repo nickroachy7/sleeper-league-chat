@@ -21,6 +21,9 @@ COPY *.py ./
 # Port that Railway will use
 EXPOSE 8080
 
+# Set PORT environment variable for Railway
+ENV PORT=8080
+
 # Start command
 CMD ["python", "api_server.py"]
 
