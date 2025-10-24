@@ -21,3 +21,6 @@ safety==3.0.1
 # Code complexity analysis
 radon==6.0.1
 
+# System monitoring
+psutil==5.9.6
+

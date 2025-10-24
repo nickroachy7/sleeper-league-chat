@@ -37,7 +37,7 @@ conversations = {}
 @app.route("/api/health", methods=["GET"])
 def health():
     """
-    Health check endpoint
+    Basic health check endpoint (fast, no external dependencies)
 
     Returns:
         JSON with service status and metadata
@@ -53,6 +53,37 @@ def health():
             "active_sessions": len(conversations),
         }
     )
+
+
+@app.route("/api/health/detailed", methods=["GET"])
+@rate_limit(max_requests=10, window_seconds=60, key_prefix="health_detailed")
+def health_detailed():
+    """
+    Detailed health check with external dependencies
+
+    Query params:
+        - include_external: Check database and external APIs (default: false)
+
+    Returns:
+        JSON with comprehensive health status
+    """
+    from health_checks import run_all_health_checks
+
+    include_external = request.args.get("include_external", "false").lower() == "true"
+
+    logger.debug(
+        f"Detailed health check requested (include_external={include_external})"
+    )
+
+    health_status = run_all_health_checks(include_external=include_external)
+
+    status_code = 200
+    if health_status["status"] == "unhealthy":
+        status_code = 503
+    elif health_status["status"] == "degraded":
+        status_code = 200  # Still operational
+
+    return jsonify(health_status), status_code
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -237,11 +268,12 @@ if __name__ == "__main__":
     logger.info(f"Environment: {FLASK_ENV}")
     logger.info(f"Log file: {LOG_FILE}")
     logger.info("\nEndpoints:")
-    logger.info("  GET  /api/health           - Health check")
-    logger.info("  POST /api/chat             - Send message to assistant")
-    logger.info("  POST /api/reset            - Reset conversation")
-    logger.info("  GET  /api/league           - Get league info")
-    logger.info("  GET  /api/standings        - Get standings")
+    logger.info("  GET  /api/health                - Basic health check")
+    logger.info("  GET  /api/health/detailed       - Detailed health with dependencies")
+    logger.info("  POST /api/chat                  - Send message to assistant")
+    logger.info("  POST /api/reset                 - Reset conversation")
+    logger.info("  GET  /api/league                - Get league info")
+    logger.info("  GET  /api/standings             - Get standings")
     logger.info("=" * 70)
 
     # Debug mode based on environment
