@@ -1,19 +1,25 @@
 # 🏈 Fantasy League AI Assistant
 
-An AI-powered assistant that answers questions about your Sleeper fantasy football league using OpenAI and Supabase.
+A **production-grade** AI-powered assistant for Sleeper fantasy football leagues with enterprise-level architecture, security, and monitoring.
 
 ## 🌟 Features
 
-- **Real-time League Data**: Syncs data from Sleeper API to Supabase
-- **AI Chat Interface**: Ask questions in natural language using OpenAI
-- **Beautiful Web UI**: Modern chat interface built with Next.js and TailwindCSS
-- **Comprehensive Queries**: 
-  - League standings and records
-  - Team rosters and player information
-  - Weekly matchup results
-  - Transaction history (trades, adds, drops)
-  - Player ownership lookup
-  - Playoff picture
+### Core Functionality
+- **AI Chat Interface**: Natural language queries powered by OpenAI GPT-4o
+- **Real-time League Data**: Automatic data sync from Sleeper API
+- **Comprehensive Analytics**: Standings, rosters, matchups, trades, player stats
+- **Beautiful Web UI**: Modern React/Next.js interface with TailwindCSS
+
+### Production Features ✨
+- **Rate Limiting**: Per-endpoint, IP-based protection (30-60 req/min)
+- **API Authentication**: Optional API key security
+- **Input Validation**: Comprehensive request validation and sanitization
+- **Health Monitoring**: Basic + detailed health checks with metrics
+- **API Documentation**: Interactive Swagger UI at `/api/docs`
+- **Security Headers**: CSP, HSTS, X-Frame-Options, etc.
+- **Error Handling**: Centralized error management with structured logging
+- **CI/CD Pipeline**: Automated testing, linting, and security scans
+- **Multi-platform Deployment**: Railway, Render, Docker, Heroku ready
 
 ## 🎯 Deployment Options
 
@@ -31,13 +37,21 @@ Deploy as a no-code n8n workflow. No Flask server or Next.js UI needed!
 - **Read**: [N8N_QUICKSTART.md](./N8N_QUICKSTART.md) for 5-minute setup
 - **Full guide**: [N8N_DEPLOYMENT_GUIDE.md](./N8N_DEPLOYMENT_GUIDE.md)
 
+## 📚 Documentation
+
+- **[Quick Start](#quick-start)** - Get started in 5 minutes
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design and architecture
+- **[PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)** - Production deployment guide
+- **[DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)** - Developer reference
+- **[API Documentation](http://localhost:5001/api/docs)** - Interactive Swagger UI (when running)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - Node.js 18+
-- Supabase account
+- Supabase account (free tier works)
 - OpenAI API key
 - Sleeper fantasy league
 
@@ -188,26 +202,59 @@ The web UI features:
 
 ## 📝 API Endpoints
 
-**POST /api/chat**: Send a message to the assistant
-```json
-{
-  "message": "What are the standings?",
-  "session_id": "unique-session-id"
-}
+### Core Endpoints
+
+| Method | Endpoint | Description | Rate Limit |
+|--------|----------|-------------|------------|
+| GET | `/api/health` | Basic health check | None |
+| GET | `/api/health/detailed` | Detailed health + dependencies | 10/min |
+| POST | `/api/chat` | Send message to AI | 30/min |
+| POST | `/api/reset` | Reset conversation | 10/min |
+| GET | `/api/league` | Get league info | 60/min |
+| GET | `/api/standings` | Get standings | 60/min |
+| GET | `/api/docs` | API documentation (Swagger UI) | None |
+
+### Authentication (Optional)
+
+Include API key in requests when configured:
+
+```bash
+# Header
+X-API-Key: your-api-key
+
+# Or Bearer token
+Authorization: Bearer your-api-key
+
+# Or query parameter
+?api_key=your-api-key
 ```
 
-**POST /api/reset**: Reset conversation history
+**Full API documentation:** Visit `/api/docs` when server is running
 
-**GET /api/league**: Get league information
+## 🔒 Security Features
 
-**GET /api/standings**: Get current standings
+### Implemented Security Measures
 
-## 🔒 Security Notes
+- ✅ **Input Validation**: All inputs validated and sanitized
+- ✅ **Rate Limiting**: IP-based rate limiting per endpoint
+- ✅ **CORS Protection**: Configurable allowed origins
+- ✅ **Security Headers**: CSP, HSTS, X-Frame-Options, XSS protection
+- ✅ **API Authentication**: Optional API key requirement
+- ✅ **Environment Validation**: Startup checks for configuration
+- ✅ **Error Handling**: Secure error messages (no sensitive data leaks)
+- ✅ **Dependency Scanning**: Automated security checks (Bandit, Safety)
 
-- Your `config.py` contains sensitive API keys
-- Never commit `config.py` to version control
-- Use environment variables in production
-- The service role key gives full database access
+### Configuration
+
+Set these environment variables for production:
+
+```bash
+API_KEY=your-secure-api-key
+ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+FLASK_ENV=production
+```
+
+See [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for complete security guide.
 
 ## 🐛 Troubleshooting
 
@@ -236,13 +283,71 @@ The web UI features:
 - Check log files for slow queries
 - Consider adding Redis caching for production
 
-## 📦 Technologies Used
+## 🏗️ Architecture
 
-- **Frontend**: Next.js 15, React 19, TailwindCSS
-- **Backend**: Flask, Python 3.9
-- **Database**: Supabase (PostgreSQL)
-- **AI**: OpenAI GPT-4o with Function Calling
-- **Data Source**: Sleeper API
+```
+Frontend (Next.js) ←→ API (Flask) ←→ Supabase (PostgreSQL)
+                          ↓
+                     OpenAI GPT-4o
+                          ↓
+                     Sleeper API
+```
+
+### Technology Stack
+
+**Frontend:**
+- Next.js 15, React 19, TypeScript, TailwindCSS
+
+**Backend:**
+- Python 3.10+, Flask 3.0, OpenAI SDK, Supabase Client
+
+**Infrastructure:**
+- PostgreSQL (Supabase), Docker, GitHub Actions
+
+**Monitoring:**
+- Health checks, structured logging, error tracking
+
+**Security:**
+- Rate limiting, CORS, input validation, security headers
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design.
+
+## 📊 Testing & Quality
+
+### Test Coverage
+
+```bash
+# Run all tests
+pytest tests/ -v --cov=.
+
+# Run with coverage report
+pytest tests/ -v --cov=. --cov-report=html
+```
+
+### Code Quality
+
+```bash
+# Format code
+black .
+
+# Lint code
+ruff check .
+
+# Security scan
+bandit -r .
+safety check
+```
+
+### CI/CD
+
+- ✅ Automated testing on push/PR
+- ✅ Code quality checks (Black, Ruff)
+- ✅ Security scanning (Bandit, Safety)
+- ✅ Multi-version Python testing (3.9, 3.10, 3.11)
+- ✅ Code coverage reporting
+- ✅ Conventional commit enforcement
+
+See [.github/workflows/](./.github/workflows/) for CI/CD configuration.
 
 ## 📄 License
 
