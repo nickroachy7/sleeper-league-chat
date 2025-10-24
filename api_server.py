@@ -12,6 +12,7 @@ from validators import validate_request, validate_chat_request, ValidationError
 from error_handlers import register_error_handlers, InternalServerError
 from middleware import rate_limit, require_api_key, request_logger
 from openapi_spec import OPENAPI_SPEC
+from security import get_allowed_origins, check_security_headers, validate_environment_variables
 import json
 import os
 
@@ -20,16 +21,37 @@ logger = setup_logger("api_server")
 
 app = Flask(__name__)
 
+# Validate environment variables on startup
+env_validation = validate_environment_variables()
+if not env_validation["valid"]:
+    logger.error("Environment variable validation failed:")
+    for error in env_validation["errors"]:
+        logger.error(f"  - {error}")
+    raise RuntimeError("Invalid environment configuration")
+
+if env_validation["warnings"]:
+    logger.warning("Environment configuration warnings:")
+    for warning in env_validation["warnings"]:
+        logger.warning(f"  - {warning}")
+
 # Configure CORS for security
+allowed_origins = get_allowed_origins()
 CORS(
     app,
-    resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}},
+    resources={r"/api/*": {"origins": allowed_origins}},
     methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-API-Key", "Authorization"],
+    supports_credentials=True,
 )
 
 # Register error handlers
 register_error_handlers(app)
+
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    return check_security_headers(response)
 
 # Store conversation history per session
 # In production, use Redis or a proper session store
