@@ -149,8 +149,12 @@ def chat_endpoint():
         conversations[session_id] = updated_history
 
         # Count messages (excluding system messages)
+        # Handle both dict and ChatCompletionMessage objects
         message_count = sum(
-            1 for msg in updated_history if msg.get("role") in ["user", "assistant"]
+            1
+            for msg in updated_history
+            if (isinstance(msg, dict) and msg.get("role") in ["user", "assistant"])
+            or (hasattr(msg, "role") and msg.role in ["user", "assistant"])
         )
 
         logger.info(
