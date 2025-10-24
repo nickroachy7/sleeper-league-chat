@@ -3,7 +3,7 @@ Flask API Server for Fantasy League Assistant
 Provides REST API endpoints for the web UI
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from fantasy_assistant import chat
 from logger_config import setup_logger
@@ -11,7 +11,9 @@ from config import API_PORT, FLASK_ENV, LOG_FILE
 from validators import validate_request, validate_chat_request, ValidationError
 from error_handlers import register_error_handlers, InternalServerError
 from middleware import rate_limit, require_api_key, request_logger
+from openapi_spec import OPENAPI_SPEC
 import json
+import os
 
 # Setup logging
 logger = setup_logger("api_server")
@@ -260,6 +262,79 @@ def get_standings_endpoint():
         raise InternalServerError("Failed to fetch standings")
 
 
+# API Documentation Endpoints
+@app.route("/api/docs", methods=["GET"])
+def api_docs():
+    """
+    Redirect to Swagger UI documentation
+
+    Returns:
+        Redirect to /api/docs/swagger
+    """
+    from flask import redirect
+
+    return redirect("/api/docs/swagger", code=302)
+
+
+@app.route("/api/docs/openapi.json", methods=["GET"])
+def openapi_spec():
+    """
+    Get OpenAPI specification
+
+    Returns:
+        OpenAPI 3.0 specification in JSON format
+    """
+    return jsonify(OPENAPI_SPEC)
+
+
+@app.route("/api/docs/swagger", methods=["GET"])
+def swagger_ui():
+    """
+    Serve Swagger UI for API documentation
+
+    Returns:
+        HTML page with Swagger UI
+    """
+    swagger_html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Fantasy League AI Assistant API - Documentation</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
+        <style>
+            body { margin: 0; padding: 0; }
+        </style>
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+        <script>
+            window.onload = function() {
+                SwaggerUIBundle({
+                    url: "/api/docs/openapi.json",
+                    dom_id: '#swagger-ui',
+                    deepLinking: true,
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset
+                    ],
+                    plugins: [
+                        SwaggerUIBundle.plugins.DownloadUrl
+                    ],
+                    layout: "StandaloneLayout"
+                });
+            };
+        </script>
+    </body>
+    </html>
+    """
+    from flask import Response
+
+    return Response(swagger_html, mimetype="text/html")
+
+
 if __name__ == "__main__":
     logger.info("=" * 70)
     logger.info("🚀 FANTASY LEAGUE ASSISTANT API SERVER")
@@ -274,6 +349,9 @@ if __name__ == "__main__":
     logger.info("  POST /api/reset                 - Reset conversation")
     logger.info("  GET  /api/league                - Get league info")
     logger.info("  GET  /api/standings             - Get standings")
+    logger.info("  GET  /api/docs                  - API documentation (Swagger UI)")
+    logger.info("=" * 70)
+    logger.info(f"\n📚 API Documentation: http://localhost:{API_PORT}/api/docs")
     logger.info("=" * 70)
 
     # Debug mode based on environment
